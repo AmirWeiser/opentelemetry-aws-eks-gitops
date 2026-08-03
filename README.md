@@ -4,29 +4,37 @@ An end-to-end DevOps project that provisions AWS infrastructure using Terraform 
 
 The project demonstrates Infrastructure as Code, AWS networking, Kubernetes orchestration, containerized microservices deployment, and production-style infrastructure practices.
 
-## Project Status
+## Project Overview
 
-Current implementation:
+This repository contains the infrastructure and Kubernetes configuration required to deploy the OpenTelemetry Astronomy Shop application.
+
+The project currently includes:
 
 - AWS infrastructure provisioning with Terraform
-- Custom VPC architecture
-- Amazon EKS cluster
-- Kubernetes deployment of 20+ microservices
-- Kubernetes Services and application configuration
-- Local deployment validation with Minikube
+- A custom AWS VPC
+- Public and private subnets
+- Internet Gateway
+- NAT Gateway
+- Route tables
+- Security groups
+- Amazon EKS
+- Kubernetes manifests
+- Deployment of more than 20 microservices
+- Local validation with Minikube
 
-Planned improvements:
+Future versions of the project will include:
 
-- GitHub Actions CI
-- Helm packaging
-- Argo CD continuous delivery
-- GitOps workflow
+- GitHub Actions
+- CI validation
+- Helm
+- Argo CD
+- GitOps-based continuous delivery
 - Security scanning
-- Monitoring and observability improvements
+- Monitoring improvements
 
 ## Architecture
 
-The project creates the following deployment flow:
+The current deployment flow is:
 
 ```text
 Developer
@@ -41,16 +49,23 @@ Terraform
 AWS Infrastructure
     |
     +-- VPC
+    |
     +-- Public Subnets
+    |
     +-- Private Subnets
+    |
     +-- Internet Gateway
+    |
     +-- NAT Gateway
+    |
     +-- Route Tables
+    |
     +-- Security Groups
+    |
     +-- Amazon EKS
             |
             v
-Kubernetes Workloads
+    Kubernetes Workloads
             |
             +-- Frontend
             +-- Cart Service
@@ -58,277 +73,987 @@ Kubernetes Workloads
             +-- Payment Service
             +-- Product Catalog Service
             +-- Recommendation Service
+            +-- OpenTelemetry Collector
             +-- Additional Microservices
+```
 
-Technologies
-- Cloud and Infrastructure
+## Technologies
+
+### Cloud and Infrastructure
+
 - AWS
 - Amazon EKS
 - Amazon VPC
 - IAM
 - Terraform
-Containers and Orchestration
+
+### Containers and Orchestration
+
 - Docker
 - Kubernetes
 - Minikube
-Planned CI/CD and GitOps
+
+### Infrastructure Components
+
+- Public Subnets
+- Private Subnets
+- Internet Gateway
+- NAT Gateway
+- Route Tables
+- Security Groups
+- EKS Managed Node Group
+
+### Planned CI/CD and GitOps
+
 - GitHub Actions
 - Helm
 - Argo CD
+- GitOps
 
-Repository Structure
+## Repository Structure
+
+```text
 .
 ├── eks/
 │   ├── backend/
 │   ├── modules/
+│   │   ├── vpc/
+│   │   └── eks/
 │   ├── main.tf
 │   ├── variables.tf
-│   └── outputs.tf
+│   ├── outputs.tf
+│   └── providers.tf
+│
 ├── kubernetes/
 │   ├── deployments/
 │   ├── services/
-│   └── application manifests
+│   ├── configmaps/
+│   └── additional-manifests/
+│
 ├── docs/
 │   └── images/
-├── scripts/
+│
 ├── .gitignore
 └── README.md
+```
 
+The exact Kubernetes directory structure may differ depending on how the manifests are currently organized.
 
-Application
+## Application
 
 This project uses the OpenTelemetry Astronomy Shop as the application workload.
 
-The Astronomy Shop is a distributed microservices application created by the OpenTelemetry project to demonstrate observability and OpenTelemetry instrumentation in a realistic environment.
+The OpenTelemetry Astronomy Shop is a distributed microservices application created by the OpenTelemetry project. It is designed to demonstrate OpenTelemetry instrumentation and observability in an environment that resembles a real-world distributed system.
 
 The application source code was not developed as part of this repository.
 
 This repository focuses on:
 
-AWS infrastructure design
-Terraform automation
-Amazon EKS provisioning
-Kubernetes deployment configuration
-Infrastructure validation
-Future CI/CD and GitOps automation
-Prerequisites
-
-Install and configure:
-
-Git
-Terraform
-AWS CLI
-kubectl
-Minikube
-An AWS account
-AWS credentials with sufficient permissions
-
-Verify the tools:
-
-terraform version
-aws --version
-kubectl version --client
-minikube version
-
-Configure AWS credentials:
-
-aws configure
-
-Verify authentication:
-
-aws sts get-caller-identity
-
-
-
-
-Local Kubernetes Validation with Minikube
-
-The Kubernetes manifests can be validated locally before deploying to AWS.
-
-Start Minikube:
-
-minikube start --cpus=4 --memory=8192
-
-Create a namespace:
-
-kubectl create namespace otel-demo
-
-Deploy the application:
-
-kubectl apply -f kubernetes/ -n otel-demo
-
-Check the Pods:
-
-kubectl get pods -n otel-demo
-
-Check the Services:
-
-kubectl get services -n otel-demo
-
-Watch the deployment process:
-
-kubectl get pods -n otel-demo -w
-
-Access the frontend:
-
-kubectl port-forward service/frontend 8080:8080 -n otel-demo
-
-Open:
-
-http://localhost:8080
-
-Remove the local deployment:
-
-kubectl delete namespace otel-demo
-
-Stop Minikube:
-
-minikube stop
-
-
-
-
-
-
-AWS Infrastructure Deployment
-
-Navigate to the Terraform directory:
-
-cd eks
-
-Initialize Terraform:
-
-terraform init
-
-Format the Terraform configuration:
-
-terraform fmt -recursive
-
-Validate the configuration:
-
-terraform validate
-
-Preview the infrastructure changes:
-
-terraform plan
-
-Provision the infrastructure:
-
-terraform apply
-
-Approve the deployment when prompted.
-
-Configure kubectl for Amazon EKS
-
-After the EKS cluster is created, update the local kubeconfig:
-
-aws eks update-kubeconfig \
-  --region <aws-region> \
-  --name <eks-cluster-name>
-
-Verify cluster access:
-
-kubectl get nodes
-Deploy the Application to Amazon EKS
-
-Create the namespace:
-
-kubectl create namespace otel-demo
-
-Apply the Kubernetes manifests:
-
-kubectl apply -f kubernetes/ -n otel-demo
-
-Verify the deployment:
-
-kubectl get pods -n otel-demo
-kubectl get services -n otel-demo
-Access the Application
-
-Check the frontend Service:
-
-kubectl get service frontend -n otel-demo
-
-Depending on the Service type, use one of the following methods.
-
-Port Forward
-kubectl port-forward service/frontend 8080:8080 -n otel-demo
-
-Open:
-
-http://localhost:8080
-LoadBalancer
-
-If the frontend Service uses the LoadBalancer type:
-
-kubectl get service frontend -n otel-demo
-
-Wait until an external address is assigned.
-
-Infrastructure Cleanup
-
-Delete the Kubernetes workloads:
-
-kubectl delete namespace otel-demo
-
-Destroy the AWS infrastructure:
-
-cd eks
-terraform destroy
-
-Review the destruction plan and approve it.
-
-Security Notes
-
-The repository intentionally excludes:
-
-Terraform state files
-AWS credentials
-Private keys
-Local Terraform provider files
-Environment files
-Sensitive variable files
-
-Do not commit:
-
-.terraform/
-terraform.tfstate
-terraform.tfstate.backup
-*.tfvars
-.env
-*.pem
-*.key
-Project Scope and Attribution
+- AWS infrastructure design
+- Terraform automation
+- Amazon EKS provisioning
+- Kubernetes workload deployment
+- Infrastructure validation
+- Local Kubernetes testing
+- Future CI/CD implementation
+- Future GitOps implementation
+
+## Project Scope and Attribution
 
 The OpenTelemetry Astronomy Shop application is maintained by the OpenTelemetry project.
 
 My work in this repository focuses on:
 
-Designing AWS infrastructure
-Building reusable Terraform configuration
-Provisioning Amazon EKS
-Configuring Kubernetes workloads
-Validating the deployment locally and in AWS
-Developing the future CI/CD and GitOps implementation
-Roadmap
- Terraform infrastructure
- AWS VPC
- Amazon EKS
- Kubernetes deployment
- Local Minikube validation
- Terraform CI validation
- Kubernetes manifest validation
- Helm chart
- GitHub Actions
- Argo CD
- GitOps deployment
- Container image scanning
- Infrastructure security scanning
- Monitoring dashboards
-Author
+- Designing the AWS infrastructure
+- Building the Terraform configuration
+- Creating reusable Terraform modules
+- Provisioning the VPC and networking components
+- Provisioning Amazon EKS
+- Configuring Kubernetes workloads
+- Adapting Kubernetes manifests for deployment
+- Validating the deployment on Minikube
+- Deploying the application on Amazon EKS
+- Developing future CI/CD and GitOps workflows
 
-Amir Weiser
+Some application manifests and container configurations are based on the original OpenTelemetry Demo project.
 
-GitHub: https://github.com/AmirWeiser
-LinkedIn: https://www.linkedin.com/in/amir-weiser/
+## Prerequisites
 
+Before using this project, install the following tools:
+
+- Git
+- Terraform
+- AWS CLI
+- kubectl
+- Minikube
+- Docker
+- An AWS account
+- AWS credentials with sufficient permissions
+
+Verify the installations:
+
+```bash
+git --version
+terraform version
+aws --version
+kubectl version --client
+minikube version
+docker version
+```
+
+## AWS Authentication
+
+Configure the AWS CLI:
+
+```bash
+aws configure
+```
+
+You will be asked to enter:
+
+```text
+AWS Access Key ID
+AWS Secret Access Key
+Default region
+Default output format
+```
+
+Verify that authentication works:
+
+```bash
+aws sts get-caller-identity
+```
+
+Do not store AWS credentials inside the repository.
+
+## Local Kubernetes Validation with Minikube
+
+The Kubernetes manifests can be tested locally before deploying them to Amazon EKS.
+
+### Start Minikube
+
+For this application, Minikube should have enough CPU and memory to run more than 20 microservices.
+
+```bash
+minikube start --cpus=4 --memory=8192
+```
+
+If your computer has enough available resources, you can allocate more:
+
+```bash
+minikube start --cpus=6 --memory=12288
+```
+
+### Verify Minikube
+
+```bash
+minikube status
+```
+
+Verify that the Kubernetes node is available:
+
+```bash
+kubectl get nodes
+```
+
+### Create a Namespace
+
+```bash
+kubectl create namespace otel-demo
+```
+
+### Deploy the Application
+
+From the repository root:
+
+```bash
+kubectl apply -f kubernetes/ -n otel-demo
+```
+
+If the Kubernetes manifests are inside nested directories and `kubectl apply` does not process them, use:
+
+```bash
+kubectl apply -R -f kubernetes/ -n otel-demo
+```
+
+### Check the Pods
+
+```bash
+kubectl get pods -n otel-demo
+```
+
+Watch the deployment process:
+
+```bash
+kubectl get pods -n otel-demo -w
+```
+
+### Check the Services
+
+```bash
+kubectl get services -n otel-demo
+```
+
+### Check Resource Usage
+
+```bash
+kubectl top nodes
+```
+
+```bash
+kubectl top pods -n otel-demo
+```
+
+If the Metrics Server is not enabled:
+
+```bash
+minikube addons enable metrics-server
+```
+
+### Check Kubernetes Events
+
+```bash
+kubectl get events -n otel-demo --sort-by=.metadata.creationTimestamp
+```
+
+### Access the Frontend
+
+First, identify the frontend Service:
+
+```bash
+kubectl get services -n otel-demo
+```
+
+If the Service is named `frontend`, run:
+
+```bash
+kubectl port-forward service/frontend 8080:8080 -n otel-demo
+```
+
+Open the application in the browser:
+
+```text
+http://localhost:8080
+```
+
+Keep the terminal running while using the application.
+
+Stop the port forwarding with:
+
+```text
+Ctrl + C
+```
+
+### Remove the Local Deployment
+
+Delete the namespace and all resources inside it:
+
+```bash
+kubectl delete namespace otel-demo
+```
+
+Stop Minikube:
+
+```bash
+minikube stop
+```
+
+To permanently delete the Minikube cluster:
+
+```bash
+minikube delete
+```
+
+## Terraform Infrastructure
+
+The Terraform configuration provisions the AWS infrastructure required for the project.
+
+The infrastructure includes:
+
+- AWS VPC
+- Public subnets
+- Private subnets
+- Internet Gateway
+- NAT Gateway
+- Route tables
+- Security groups
+- Amazon EKS
+- EKS node group
+- IAM roles and policies
+
+## Terraform Backend
+
+The project may use a remote Terraform backend for storing Terraform state.
+
+The backend infrastructure can include:
+
+- An Amazon S3 bucket
+- S3 versioning
+- State encryption
+- Terraform state locking
+
+Terraform state files must never be committed to Git.
+
+## Deploy the Terraform Backend
+
+If the `eks/backend` directory creates the backend infrastructure, enter it first:
+
+```bash
+cd eks/backend
+```
+
+Initialize Terraform:
+
+```bash
+terraform init
+```
+
+Format the configuration:
+
+```bash
+terraform fmt -recursive
+```
+
+Validate the configuration:
+
+```bash
+terraform validate
+```
+
+Create a Terraform plan:
+
+```bash
+terraform plan
+```
+
+Apply the configuration:
+
+```bash
+terraform apply
+```
+
+Review the plan and enter:
+
+```text
+yes
+```
+
+Return to the repository root:
+
+```bash
+cd ../..
+```
+
+## Deploy the AWS Infrastructure
+
+Enter the main Terraform directory:
+
+```bash
+cd eks
+```
+
+Initialize Terraform:
+
+```bash
+terraform init
+```
+
+Format the Terraform files:
+
+```bash
+terraform fmt -recursive
+```
+
+Validate the Terraform configuration:
+
+```bash
+terraform validate
+```
+
+Create an execution plan:
+
+```bash
+terraform plan
+```
+
+Provision the infrastructure:
+
+```bash
+terraform apply
+```
+
+Review the Terraform plan carefully before approving it.
+
+When prompted, enter:
+
+```text
+yes
+```
+
+Provisioning Amazon EKS may take several minutes.
+
+## Terraform Outputs
+
+After the deployment completes, display the outputs:
+
+```bash
+terraform output
+```
+
+The outputs may include:
+
+- VPC ID
+- Public subnet IDs
+- Private subnet IDs
+- EKS cluster name
+- EKS cluster endpoint
+- AWS region
+
+## Configure kubectl for Amazon EKS
+
+Update the local kubeconfig:
+
+```bash
+aws eks update-kubeconfig \
+  --region <aws-region> \
+  --name <eks-cluster-name>
+```
+
+Replace:
+
+```text
+<aws-region>
+```
+
+with the AWS region used by the Terraform configuration.
+
+Replace:
+
+```text
+<eks-cluster-name>
+```
+
+with the EKS cluster name created by Terraform.
+
+Verify the current Kubernetes context:
+
+```bash
+kubectl config current-context
+```
+
+Verify access to the EKS cluster:
+
+```bash
+kubectl get nodes
+```
+
+The EKS worker nodes should appear with the status:
+
+```text
+Ready
+```
+
+## Deploy the Application to Amazon EKS
+
+Return to the repository root if necessary:
+
+```bash
+cd ..
+```
+
+Create a namespace:
+
+```bash
+kubectl create namespace otel-demo
+```
+
+Deploy the Kubernetes manifests:
+
+```bash
+kubectl apply -f kubernetes/ -n otel-demo
+```
+
+If the manifests are organized in nested directories:
+
+```bash
+kubectl apply -R -f kubernetes/ -n otel-demo
+```
+
+Verify the Pods:
+
+```bash
+kubectl get pods -n otel-demo
+```
+
+Watch the Pods during startup:
+
+```bash
+kubectl get pods -n otel-demo -w
+```
+
+Verify the Services:
+
+```bash
+kubectl get services -n otel-demo
+```
+
+Verify the Deployments:
+
+```bash
+kubectl get deployments -n otel-demo
+```
+
+Display all namespaced resources:
+
+```bash
+kubectl get all -n otel-demo
+```
+
+## Access the Application on EKS
+
+Check the frontend Service:
+
+```bash
+kubectl get service frontend -n otel-demo
+```
+
+The access method depends on the Service type.
+
+### Port Forward
+
+```bash
+kubectl port-forward service/frontend 8080:8080 -n otel-demo
+```
+
+Open:
+
+```text
+http://localhost:8080
+```
+
+### LoadBalancer
+
+If the frontend Service uses the `LoadBalancer` type:
+
+```bash
+kubectl get service frontend -n otel-demo
+```
+
+Wait until an external hostname appears under:
+
+```text
+EXTERNAL-IP
+```
+
+Open the external hostname in the browser.
+
+## Verification
+
+Check that all Pods are running:
+
+```bash
+kubectl get pods -n otel-demo
+```
+
+Expected Pod status:
+
+```text
+Running
+```
+
+Check the number of ready containers:
+
+```bash
+kubectl get pods -n otel-demo
+```
+
+Check application logs:
+
+```bash
+kubectl logs <pod-name> -n otel-demo
+```
+
+For a Pod with multiple containers:
+
+```bash
+kubectl logs <pod-name> -c <container-name> -n otel-demo
+```
+
+Describe a Pod:
+
+```bash
+kubectl describe pod <pod-name> -n otel-demo
+```
+
+Check recent events:
+
+```bash
+kubectl get events -n otel-demo --sort-by=.metadata.creationTimestamp
+```
+
+## Troubleshooting
+
+### Pods Stay in Pending
+
+Check the Pod description:
+
+```bash
+kubectl describe pod <pod-name> -n otel-demo
+```
+
+Possible causes include:
+
+- Insufficient CPU
+- Insufficient memory
+- Scheduling constraints
+- Missing PersistentVolume
+- Node selector mismatch
+
+### ImagePullBackOff
+
+Check the image name:
+
+```bash
+kubectl describe pod <pod-name> -n otel-demo
+```
+
+Possible causes include:
+
+- Incorrect image name
+- Incorrect image tag
+- Private container registry
+- Missing registry credentials
+- Network connectivity problems
+
+### CrashLoopBackOff
+
+Check the logs:
+
+```bash
+kubectl logs <pod-name> -n otel-demo
+```
+
+Check previous container logs:
+
+```bash
+kubectl logs <pod-name> -n otel-demo --previous
+```
+
+Possible causes include:
+
+- Missing environment variables
+- Invalid configuration
+- Dependency connection failure
+- Application startup failure
+
+### CreateContainerConfigError
+
+Check the Pod description:
+
+```bash
+kubectl describe pod <pod-name> -n otel-demo
+```
+
+Possible causes include:
+
+- Missing ConfigMap
+- Missing Secret
+- Incorrect volume configuration
+- Invalid environment reference
+
+### Slow Minikube Deployment
+
+Check node usage:
+
+```bash
+kubectl top nodes
+```
+
+Check Pod usage:
+
+```bash
+kubectl top pods -n otel-demo
+```
+
+Check whether Minikube has enough resources:
+
+```bash
+minikube profile list
+```
+
+More than 20 microservices may take several minutes to start, especially when Minikube downloads all container images for the first time.
+
+### LoadBalancer Stays Pending in Minikube
+
+A `LoadBalancer` Service does not automatically receive a cloud load balancer in a local Minikube environment.
+
+Use:
+
+```bash
+minikube tunnel
+```
+
+Or use port forwarding:
+
+```bash
+kubectl port-forward service/frontend 8080:8080 -n otel-demo
+```
+
+## Infrastructure Cleanup
+
+AWS infrastructure can generate costs while it is running.
+
+Delete the Kubernetes resources before destroying the infrastructure:
+
+```bash
+kubectl delete namespace otel-demo
+```
+
+Enter the Terraform directory:
+
+```bash
+cd eks
+```
+
+Create a destruction plan:
+
+```bash
+terraform plan -destroy
+```
+
+Destroy the AWS infrastructure:
+
+```bash
+terraform destroy
+```
+
+Review the destruction plan carefully.
+
+When prompted, enter:
+
+```text
+yes
+```
+
+Verify in the AWS Console that the following resources were removed:
+
+- EKS cluster
+- EKS node group
+- EC2 instances
+- Load balancers
+- NAT Gateway
+- Elastic IP addresses
+- VPC
+- Subnets
+- Route tables
+- Security groups
+
+If the Terraform backend is no longer required, destroy it separately only after the main infrastructure state is no longer needed.
+
+## Security Notes
+
+The repository intentionally excludes sensitive and generated files.
+
+Do not commit:
+
+```text
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfplan
+.env
+.env.*
+*.pem
+*.key
+AWS credentials
+Private keys
+Access tokens
+```
+
+Terraform provider files inside `.terraform` can be hundreds of megabytes and must not be committed.
+
+Terraform downloads them again when running:
+
+```bash
+terraform init
+```
+
+## Recommended .gitignore
+
+```gitignore
+# Terraform working directories
+**/.terraform/
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Terraform variable files
+*.tfvars
+*.tfvars.json
+
+# Terraform plan files
+*.tfplan
+*.plan
+
+# Terraform crash logs
+crash.log
+crash.*.log
+
+# Terraform override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform CLI configuration
+.terraformrc
+terraform.rc
+
+# Environment files
+.env
+.env.*
+
+# Credentials and private keys
+*.pem
+*.key
+*credentials*
+*access keys*
+
+# Operating system files
+.DS_Store
+Thumbs.db
+```
+
+The `.terraform.lock.hcl` file should normally remain in Git because it records the selected Terraform provider versions.
+
+## Screenshots
+
+Screenshots will be added to demonstrate the deployed environment.
+
+Planned screenshots:
+
+- Application frontend
+- Kubernetes Pods
+- Kubernetes Services
+- Amazon EKS cluster
+- AWS VPC
+- Terraform outputs
+- Argo CD dashboard
+- GitHub Actions workflow
+
+Example Markdown:
+
+```markdown
+![Application Frontend](docs/images/application-frontend.png)
+```
+
+```markdown
+![Kubernetes Pods](docs/images/kubernetes-pods.png)
+```
+
+Before adding screenshots, make sure they do not expose:
+
+- AWS Account ID
+- Email addresses
+- Access keys
+- Secrets
+- Private IP addresses
+- Sensitive organization information
+
+## Roadmap
+
+- [x] Terraform infrastructure
+- [x] AWS VPC
+- [x] Public and private subnets
+- [x] NAT Gateway
+- [x] Internet Gateway
+- [x] Amazon EKS
+- [x] Kubernetes manifests
+- [x] Deployment of 20+ microservices
+- [x] Local Minikube validation
+- [x] Amazon EKS deployment
+- [ ] Architecture diagram
+- [ ] Project screenshots
+- [ ] Terraform CI validation
+- [ ] Kubernetes manifest validation
+- [ ] Docker image build workflow
+- [ ] Container image scanning
+- [ ] Terraform security scanning
+- [ ] Helm chart
+- [ ] GitHub Actions
+- [ ] Argo CD
+- [ ] GitOps continuous delivery
+- [ ] Automated image tag updates
+- [ ] Monitoring dashboards
+- [ ] Improved observability
+- [ ] Automated infrastructure cleanup
+
+## Future CI/CD Workflow
+
+The planned CI/CD workflow is:
+
+```text
+Developer Push
+      |
+      v
+GitHub Actions
+      |
+      +-- Terraform Format Check
+      |
+      +-- Terraform Validation
+      |
+      +-- Kubernetes Manifest Validation
+      |
+      +-- Docker Build
+      |
+      +-- Security Scan
+      |
+      +-- Push Container Image
+      |
+      +-- Update GitOps Configuration
+                  |
+                  v
+               Argo CD
+                  |
+                  v
+              Amazon EKS
+```
+
+GitHub Actions will be responsible for validation, building, testing, and updating the desired application version.
+
+Argo CD will be responsible for deploying the desired state from Git to Kubernetes.
+
+GitHub Actions should not directly run `kubectl apply` when using a complete GitOps workflow.
+
+## Learning Goals
+
+This project was created to strengthen practical experience in:
+
+- AWS cloud infrastructure
+- Infrastructure as Code
+- Terraform modules
+- AWS networking
+- Amazon EKS
+- Kubernetes
+- Microservices deployment
+- Cloud-native architecture
+- Troubleshooting
+- CI/CD
+- GitOps
+- Argo CD
+- Helm
+- Monitoring
+- DevSecOps
+
+## Author
+
+**Amir Weiser**
+
+DevOps and Infrastructure Engineer
+
+- GitHub: [github.com/AmirWeiser](https://github.com/AmirWeiser)
+- LinkedIn: [linkedin.com/in/amir-weiser](https://www.linkedin.com/in/amir-weiser/)
