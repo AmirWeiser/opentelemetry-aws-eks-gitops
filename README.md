@@ -358,9 +358,8 @@ The `eks/backend` directory creates the backend infrastructure, enter it first:
 ```bash
 cd eks/backend
 ```
-### Change configuration to match your AWS region and unique bucket name 
 
-Initialize Terraform:
+### Change configuration to match your AWS region and unique bucket name and then Initialize Terraform:
 
 ```bash
 terraform init
