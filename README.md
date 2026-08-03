@@ -267,22 +267,10 @@ kubectl create namespace otel-demo
 From the repository root:
 
 ```bash
-kubectl apply -f kubernetes/ -n otel-demo
+kubectl apply -f complete-deploy/ -n otel-demo
 ```
 
-If the Kubernetes manifests are inside nested directories and `kubectl apply` does not process them, use:
-
-```bash
-kubectl apply -R -f kubernetes/ -n otel-demo
-```
-
-### Check the Pods
-
-```bash
-kubectl get pods -n otel-demo
-```
-
-Watch the deployment process:
+### Watch the deployment process:
 
 ```bash
 kubectl get pods -n otel-demo -w
@@ -294,28 +282,6 @@ kubectl get pods -n otel-demo -w
 kubectl get services -n otel-demo
 ```
 
-### Check Resource Usage
-
-```bash
-kubectl top nodes
-```
-
-```bash
-kubectl top pods -n otel-demo
-```
-
-If the Metrics Server is not enabled:
-
-```bash
-minikube addons enable metrics-server
-```
-
-### Check Kubernetes Events
-
-```bash
-kubectl get events -n otel-demo --sort-by=.metadata.creationTimestamp
-```
-
 ### Access the Frontend
 
 First, identify the frontend Service:
@@ -324,10 +290,8 @@ First, identify the frontend Service:
 kubectl get services -n otel-demo
 ```
 
-If the Service is named `frontend`, run:
-
 ```bash
-kubectl port-forward service/frontend 8080:8080 -n otel-demo
+kubectl port-forward service/frontendproxy 8080:8080 -n otel-demo
 ```
 
 Open the application in the browser:
@@ -383,24 +347,18 @@ The infrastructure includes:
 
 ## Terraform Backend
 
-The project may use a remote Terraform backend for storing Terraform state.
-
-The backend infrastructure can include:
-
-- An Amazon S3 bucket
-- S3 versioning
-- State encryption
-- Terraform state locking
+The project uses a remote Terraform backend for storing Terraform state.
 
 Terraform state files must never be committed to Git.
 
 ## Deploy the Terraform Backend
 
-If the `eks/backend` directory creates the backend infrastructure, enter it first:
+The `eks/backend` directory creates the backend infrastructure, enter it first:
 
 ```bash
 cd eks/backend
 ```
+### Change configuration to match your AWS region and unique bucket name 
 
 Initialize Terraform:
 
@@ -511,7 +469,7 @@ The outputs may include:
 
 ## Configure kubectl for Amazon EKS
 
-Update the local kubeconfig:
+Connect to the EKS control panel and update the local kubeconfig:
 
 ```bash
 aws eks update-kubeconfig \
@@ -570,19 +528,7 @@ kubectl create namespace otel-demo
 Deploy the Kubernetes manifests:
 
 ```bash
-kubectl apply -f kubernetes/ -n otel-demo
-```
-
-If the manifests are organized in nested directories:
-
-```bash
-kubectl apply -R -f kubernetes/ -n otel-demo
-```
-
-Verify the Pods:
-
-```bash
-kubectl get pods -n otel-demo
+kubectl apply -f complete-deploy/ -n otel-demo
 ```
 
 Watch the Pods during startup:
@@ -614,7 +560,7 @@ kubectl get all -n otel-demo
 Check the frontend Service:
 
 ```bash
-kubectl get service frontend -n otel-demo
+kubectl get service frontendproxy -n otel-demo
 ```
 
 The access method depends on the Service type.
@@ -622,7 +568,7 @@ The access method depends on the Service type.
 ### Port Forward
 
 ```bash
-kubectl port-forward service/frontend 8080:8080 -n otel-demo
+kubectl port-forward service/frontendproxy 8080:8080 -n otel-demo
 ```
 
 Open:
@@ -633,10 +579,10 @@ http://localhost:8080
 
 ### LoadBalancer
 
-If the frontend Service uses the `LoadBalancer` type:
+You can change the frontendproxy Service to use the `LoadBalancer` type:
 
 ```bash
-kubectl get service frontend -n otel-demo
+kubectl get service frontendproxy -n otel-demo -w
 ```
 
 Wait until an external hostname appears under:
@@ -660,195 +606,6 @@ Expected Pod status:
 ```text
 Running
 ```
-
-Check the number of ready containers:
-
-```bash
-kubectl get pods -n otel-demo
-```
-
-Check application logs:
-
-```bash
-kubectl logs <pod-name> -n otel-demo
-```
-
-For a Pod with multiple containers:
-
-```bash
-kubectl logs <pod-name> -c <container-name> -n otel-demo
-```
-
-Describe a Pod:
-
-```bash
-kubectl describe pod <pod-name> -n otel-demo
-```
-
-Check recent events:
-
-```bash
-kubectl get events -n otel-demo --sort-by=.metadata.creationTimestamp
-```
-
-## Troubleshooting
-
-### Pods Stay in Pending
-
-Check the Pod description:
-
-```bash
-kubectl describe pod <pod-name> -n otel-demo
-```
-
-Possible causes include:
-
-- Insufficient CPU
-- Insufficient memory
-- Scheduling constraints
-- Missing PersistentVolume
-- Node selector mismatch
-
-### ImagePullBackOff
-
-Check the image name:
-
-```bash
-kubectl describe pod <pod-name> -n otel-demo
-```
-
-Possible causes include:
-
-- Incorrect image name
-- Incorrect image tag
-- Private container registry
-- Missing registry credentials
-- Network connectivity problems
-
-### CrashLoopBackOff
-
-Check the logs:
-
-```bash
-kubectl logs <pod-name> -n otel-demo
-```
-
-Check previous container logs:
-
-```bash
-kubectl logs <pod-name> -n otel-demo --previous
-```
-
-Possible causes include:
-
-- Missing environment variables
-- Invalid configuration
-- Dependency connection failure
-- Application startup failure
-
-### CreateContainerConfigError
-
-Check the Pod description:
-
-```bash
-kubectl describe pod <pod-name> -n otel-demo
-```
-
-Possible causes include:
-
-- Missing ConfigMap
-- Missing Secret
-- Incorrect volume configuration
-- Invalid environment reference
-
-### Slow Minikube Deployment
-
-Check node usage:
-
-```bash
-kubectl top nodes
-```
-
-Check Pod usage:
-
-```bash
-kubectl top pods -n otel-demo
-```
-
-Check whether Minikube has enough resources:
-
-```bash
-minikube profile list
-```
-
-More than 20 microservices may take several minutes to start, especially when Minikube downloads all container images for the first time.
-
-### LoadBalancer Stays Pending in Minikube
-
-A `LoadBalancer` Service does not automatically receive a cloud load balancer in a local Minikube environment.
-
-Use:
-
-```bash
-minikube tunnel
-```
-
-Or use port forwarding:
-
-```bash
-kubectl port-forward service/frontend 8080:8080 -n otel-demo
-```
-
-## Infrastructure Cleanup
-
-AWS infrastructure can generate costs while it is running.
-
-Delete the Kubernetes resources before destroying the infrastructure:
-
-```bash
-kubectl delete namespace otel-demo
-```
-
-Enter the Terraform directory:
-
-```bash
-cd eks
-```
-
-Create a destruction plan:
-
-```bash
-terraform plan -destroy
-```
-
-Destroy the AWS infrastructure:
-
-```bash
-terraform destroy
-```
-
-Review the destruction plan carefully.
-
-When prompted, enter:
-
-```text
-yes
-```
-
-Verify in the AWS Console that the following resources were removed:
-
-- EKS cluster
-- EKS node group
-- EC2 instances
-- Load balancers
-- NAT Gateway
-- Elastic IP addresses
-- VPC
-- Subnets
-- Route tables
-- Security groups
-
-If the Terraform backend is no longer required, destroy it separately only after the main infrastructure state is no longer needed.
 
 ## Security Notes
 
@@ -934,63 +691,26 @@ The `.terraform.lock.hcl` file should normally remain in Git because it records 
 
 Screenshots will be added to demonstrate the deployed environment.
 
-Planned screenshots:
 
-- Application frontend
-- Kubernetes Pods
-- Kubernetes Services
-- Amazon EKS cluster
-- AWS VPC
-- Terraform outputs
+- Application frontend:
+  <img width="951" height="472" alt="צילום מסך 2026-07-23 144252" src="https://github.com/user-attachments/assets/9beb00be-ecea-4142-a39a-c584b8d1b773" />
+
+- Kubernetes complete-deploy:
+  <img width="921" height="466" alt="צילום מסך 2026-07-23 143410" src="https://github.com/user-attachments/assets/cf0bf85d-c18c-470c-9edd-60134ee47dff" />
+
+- Amazon EKS cluster:
+  <img width="947" height="385" alt="צילום מסך 2026-07-23 142120" src="https://github.com/user-attachments/assets/e30e5698-b60c-4bb5-b020-a7b9744a7ce6" />
+
+- AWS VPC:
+  <img width="626" height="314" alt="צילום מסך 2026-07-23 144753" src="https://github.com/user-attachments/assets/fa25b4e0-22da-4085-8107-9972985c09e2" />
+
+- Terraform outputs:
+  <img width="554" height="78" alt="צילום מסך 2026-07-23 142012" src="https://github.com/user-attachments/assets/3c32c21d-61ab-4e23-914c-ea31bc426d46" />
+
+Planned Screnshots:
+
 - Argo CD dashboard
 - GitHub Actions workflow
-
-Example Markdown:
-
-```markdown
-![Application Frontend](docs/images/application-frontend.png)
-```
-
-```markdown
-![Kubernetes Pods](docs/images/kubernetes-pods.png)
-```
-
-Before adding screenshots, make sure they do not expose:
-
-- AWS Account ID
-- Email addresses
-- Access keys
-- Secrets
-- Private IP addresses
-- Sensitive organization information
-
-## Roadmap
-
-- [x] Terraform infrastructure
-- [x] AWS VPC
-- [x] Public and private subnets
-- [x] NAT Gateway
-- [x] Internet Gateway
-- [x] Amazon EKS
-- [x] Kubernetes manifests
-- [x] Deployment of 20+ microservices
-- [x] Local Minikube validation
-- [x] Amazon EKS deployment
-- [ ] Architecture diagram
-- [ ] Project screenshots
-- [ ] Terraform CI validation
-- [ ] Kubernetes manifest validation
-- [ ] Docker image build workflow
-- [ ] Container image scanning
-- [ ] Terraform security scanning
-- [ ] Helm chart
-- [ ] GitHub Actions
-- [ ] Argo CD
-- [ ] GitOps continuous delivery
-- [ ] Automated image tag updates
-- [ ] Monitoring dashboards
-- [ ] Improved observability
-- [ ] Automated infrastructure cleanup
 
 ## Future CI/CD Workflow
 
