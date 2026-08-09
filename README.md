@@ -711,43 +711,6 @@ Planned Screnshots:
 - Argo CD dashboard
 - GitHub Actions workflow
 
-## Future CI/CD Workflow
-
-The planned CI/CD workflow is:
-
-```text
-Developer Push
-      |
-      v
-GitHub Actions
-      |
-      +-- Terraform Format Check
-      |
-      +-- Terraform Validation
-      |
-      +-- Kubernetes Manifest Validation
-      |
-      +-- Docker Build
-      |
-      +-- Security Scan
-      |
-      +-- Push Container Image
-      |
-      +-- Update GitOps Configuration
-                  |
-                  v
-               Argo CD
-                  |
-                  v
-              Amazon EKS
-```
-
-GitHub Actions will be responsible for validation, building, testing, and updating the desired application version.
-
-Argo CD will be responsible for deploying the desired state from Git to Kubernetes.
-
-GitHub Actions should not directly run `kubectl apply` when using a complete GitOps workflow.
-
 ## Learning Goals
 
 This project was created to strengthen practical experience in:
