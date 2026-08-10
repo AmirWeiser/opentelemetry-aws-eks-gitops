@@ -1,4 +1,5 @@
 terradmin access keys.txt
+argocd.*
 # Terraform working directories
 **/.terraform/*
 
