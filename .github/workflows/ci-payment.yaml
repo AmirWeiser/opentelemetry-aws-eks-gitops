@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - "src/payment/**"
-      - ".github/workflows/payment-ci.yml"
+      - ".github/workflows/ci-payment.yml"
 
   pull_request:
     branches:

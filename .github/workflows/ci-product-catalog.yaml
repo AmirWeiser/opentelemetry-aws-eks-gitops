@@ -1,108 +1,111 @@
-# CI for Product Catalog Service
+name: Product Catalog CI
 
-name: product-catalog-ci
+on:
+  workflow_dispatch:
 
-on: 
-    pull_request:
-        branches:
-        - main
+  push:
+    branches:
+      - main
+    paths:
+      - "src/product-catalog/**"
+      - ".github/workflows/ci-product-catalog.yaml"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/product-catalog/**"
+      - ".github/workflows/ci-product-catalog.yaml"
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/amirweiser/product-catalog
+  MANIFEST_PATH: kubernetes/productcatalog/deploy.yaml
 
 jobs:
-    build:
-        runs-on: ubuntu-latest
+  test:
+    name: Build and Test
+    runs-on: ubuntu-latest
 
-        steps:
-        - name: checkout code
-          uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-        - name: Setup Go 1.22
-          uses: actions/setup-go@v2
-          with:
-            go-version: 1.22
-        
-        - name: Build
-          run: |
-            cd src/product-catalog
-            go mod download
-            go build -o product-catalog-service main.go
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.22"
+          cache-dependency-path: src/product-catalog/go.sum
 
-        - name: unit tests
-          run: |
-            cd src/product-catalog
-            go test ./...
-    
-    code-quality:
-        runs-on: ubuntu-latest
+      - name: Download dependencies
+        working-directory: src/product-catalog
+        run: go mod download
 
-        steps:
-        - name: checkout code
-          uses: actions/checkout@v4
-        
-        - name: Setup Go 1.22
-          uses: actions/setup-go@v2
-          with:
-           go-version: 1.22
-        
-        - name: Run golangci-lint
-          uses: golangci/golangci-lint-action@v6
-          with:
-            version: v1.55.2
-            run: golangci-lint run
-            working-directory: src/product-catalog
+      - name: Build application
+        working-directory: src/product-catalog
+        run: go build -o product-catalog-service .
 
-    docker:
-        runs-on: ubuntu-latest
+      - name: Run unit tests
+        working-directory: src/product-catalog
+        run: go test ./...
 
-        needs: build
+  docker:
+    name: Build and Publish Image
+    runs-on: ubuntu-latest
+    needs: test
 
-        steps:
-        - name: checkout code
-          uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-        - name: Install Docker
-          uses: docker/setup-buildx-action@v1
-        
-        - name: Login to Docker
-          uses: docker/login-action@v3
-          with:
-            username: ${{ secrets.DOCKER_USERNAME }}
-            password: ${{ secrets.DOCKER_TOKEN }}
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            ./src/product-catalog
 
-        - name: Docker Push
-          uses: docker/build-push-action@v6
-          with:
-            context: src/product-catalog
-            file: src/product-catalog/Dockerfile
-            push: true
-            tags: ${{ secrets.DOCKER_USERNAME }}/product-catalog:${{github.run_id}}
+      - name: Login to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-    
-    updatek8s:
-        runs-on: ubuntu-latest
+      - name: Push Docker image
+        if: github.event_name == 'push'
+        run: |
+          docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-        needs: docker
+  update-manifest:
+    name: Update Kubernetes Manifest
+    runs-on: ubuntu-latest
+    needs: docker
 
-        steps:
-        - name: checkout code
-          uses: actions/checkout@v4
-          with:
-            token: ${{ secrets.GITHUB_TOKEN }}
+    if: github.event_name == 'push'
 
-        - name: Update tag in kubernetes deployment manifest
-          run: | 
-               sed -i "s|image: .*|image: ${{ secrets.DOCKER_USERNAME }}/product-catalog:${{github.run_id}}|" kubernetes/productcatalog/deploy.yaml
-        
-        - name: Commit and push changes
-          run: |
-            git config --global user.email "abhishek@gmail.com"
-            git config --global user.name "Abhishek Veeramalla"
-            git add kubernetes/productcatalog/deploy.yaml
-            git commit -m "[CI]: Update product catalog image tag"
-            git push origin HEAD:main -f
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-        
-        
-          
+      - name: Update image tag
+        run: |
+          sed -i \
+            "s|image: .*|image: ${{ env.IMAGE_NAME }}:${{ github.sha }}|" \
+            ${{ env.MANIFEST_PATH }}
 
+      - name: Commit manifest change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-        
+          git add ${{ env.MANIFEST_PATH }}
+
+          git diff --cached --quiet || \
+          git commit -m "chore(product-catalog): update image to ${{ github.sha }}"
+
+          git push
