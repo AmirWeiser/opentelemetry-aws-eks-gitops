@@ -31,7 +31,7 @@ spec:
       serviceAccountName: opentelemetry-demo
       containers:
         - name: productcatalogservice
-          image: ghcr.io/amirweiser/product-catalog:79c11c5d8090d864cadc55302fcdddc2438fbecc
+          image: ghcr.io/amirweiser/product-catalog:07be7fe3fad64127678963b4cdafc2344fe0b71b
           imagePullPolicy: IfNotPresent
           ports:
             
