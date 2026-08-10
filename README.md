@@ -24,11 +24,7 @@ The project currently includes:
 
 Future versions of the project will include:
 
-- GitHub Actions
-- CI validation
 - Helm
-- Argo CD
-- GitOps-based continuous delivery
 - Security scanning
 - Monitoring improvements
 
@@ -103,10 +99,9 @@ AWS Infrastructure
 - Security Groups
 - EKS Managed Node Group
 
-### Planned CI/CD and GitOps
+### CI/CD and GitOps
 
 - GitHub Actions
-- Helm
 - Argo CD
 - GitOps
 
