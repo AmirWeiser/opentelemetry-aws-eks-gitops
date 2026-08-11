@@ -7,4 +7,4 @@ productCatalog:
   replicaCount: 1
   image:
     repository: ghcr.io/amirweiser/product-catalog
-    tag: latest
+    tag: 99b515cc840b1b730673cc28c9b73c01646d5e37
