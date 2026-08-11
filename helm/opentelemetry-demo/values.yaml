@@ -1,0 +1,13 @@
+payment:
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/amirweiser/paymentservice
+    tag: latest
+
+productCatalog:
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/amirweiser/product-catalog
+    tag: latest
