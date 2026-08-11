@@ -6,14 +6,16 @@ on:
       - main
     paths:
       - "src/payment/**"
-      - ".github/workflows/ci-payment.yml"
+      - ".github/workflows/ci-payment.yaml"
 
   pull_request:
     branches:
       - main
     paths:
       - "src/payment/**"
-      - ".github/workflows/payment-ci.yml"
+      - ".github/workflows/ci-payment.yaml"
+
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -22,7 +24,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/amirweiser/paymentservice
-  MANIFEST_PATH: kubernetes/payment/deploy.yaml
+  HELM_VALUES_PATH: helm/opentelemetry-demo/values.yaml
 
 jobs:
   build-and-publish:
@@ -38,14 +40,14 @@ jobs:
             -t ${{ env.IMAGE_NAME }}:${{ github.sha }} \
             ./src/payment
 
-      - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@master
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           image-ref: '${{ env.IMAGE_NAME }}:${{ github.sha }}'
-          format: 'table'
+          format: table
           exit-code: '1'
           ignore-unfixed: true
-          severity: 'CRITICAL'
+          severity: CRITICAL
 
       - name: Login to GHCR
         if: github.event_name == 'push'
@@ -60,22 +62,34 @@ jobs:
         run: |
           docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      - name: Update Kubernetes manifest
+      - name: Install yq
         if: github.event_name == 'push'
         run: |
-          sed -i \
-            "s|image: 'ghcr.io/open-telemetry/demo:1.12.0-paymentservice'|image: '${{ env.IMAGE_NAME }}:${{ github.sha }}'|" \
-            ${{ env.MANIFEST_PATH }}
+          sudo wget -q \
+            https://github.com/mikefarah/yq/releases/download/v4.53.3/yq_linux_amd64 \
+            -O /usr/local/bin/yq
+          sudo chmod +x /usr/local/bin/yq
 
-      - name: Commit updated manifest
+      - name: Update Helm image tag
+        if: github.event_name == 'push'
+        env:
+          NEW_TAG: ${{ github.sha }}
+        run: |
+          yq -i '.payment.image.tag = strenv(NEW_TAG)' \
+            ${{ env.HELM_VALUES_PATH }}
+
+      - name: Commit Helm values update
         if: github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add ${{ env.MANIFEST_PATH }}
+          git add ${{ env.HELM_VALUES_PATH }}
 
-          git diff --cached --quiet || \
+          if git diff --cached --quiet; then
+            echo "No Helm values changes detected"
+            exit 0
+          fi
+
           git commit -m "chore(payment): update image to ${{ github.sha }}"
-
           git push

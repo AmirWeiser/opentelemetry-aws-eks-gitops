@@ -1,8 +1,6 @@
 name: Product Catalog CI
 
 on:
-  workflow_dispatch:
-
   push:
     branches:
       - main
@@ -17,6 +15,8 @@ on:
       - "src/product-catalog/**"
       - ".github/workflows/ci-product-catalog.yaml"
 
+  workflow_dispatch:
+
 permissions:
   contents: write
   packages: write
@@ -24,11 +24,10 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/amirweiser/product-catalog
-  MANIFEST_PATH: kubernetes/productcatalog/deploy.yaml
+  HELM_VALUES_PATH: helm/opentelemetry-demo/values.yaml
 
 jobs:
-  test:
-    name: Build and Test
+  build-test-and-publish:
     runs-on: ubuntu-latest
 
     steps:
@@ -41,32 +40,32 @@ jobs:
           go-version: "1.22"
           cache-dependency-path: src/product-catalog/go.sum
 
-      - name: Download dependencies
+      - name: Download Go dependencies
         working-directory: src/product-catalog
         run: go mod download
 
       - name: Build application
         working-directory: src/product-catalog
-        run: go build -o product-catalog-service .
+        run: go build ./...
 
       - name: Run unit tests
         working-directory: src/product-catalog
         run: go test ./...
-
-  docker:
-    name: Build and Publish Image
-    runs-on: ubuntu-latest
-    needs: test
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
       - name: Build Docker image
         run: |
           docker build \
             -t ${{ env.IMAGE_NAME }}:${{ github.sha }} \
             ./src/product-catalog
+
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          image-ref: '${{ env.IMAGE_NAME }}:${{ github.sha }}'
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL
 
       - name: Login to GHCR
         if: github.event_name == 'push'
@@ -81,31 +80,34 @@ jobs:
         run: |
           docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-  update-manifest:
-    name: Update Kubernetes Manifest
-    runs-on: ubuntu-latest
-    needs: docker
-
-    if: github.event_name == 'push'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Update image tag
+      - name: Install yq
+        if: github.event_name == 'push'
         run: |
-          sed -i \
-            "s|image: .*|image: ${{ env.IMAGE_NAME }}:${{ github.sha }}|" \
-            ${{ env.MANIFEST_PATH }}
+          sudo wget -q \
+            https://github.com/mikefarah/yq/releases/download/v4.53.3/yq_linux_amd64 \
+            -O /usr/local/bin/yq
+          sudo chmod +x /usr/local/bin/yq
 
-      - name: Commit manifest change
+      - name: Update Helm image tag
+        if: github.event_name == 'push'
+        env:
+          NEW_TAG: ${{ github.sha }}
+        run: |
+          yq -i '.productCatalog.image.tag = strenv(NEW_TAG)' \
+            ${{ env.HELM_VALUES_PATH }}
+
+      - name: Commit Helm values update
+        if: github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add ${{ env.MANIFEST_PATH }}
+          git add ${{ env.HELM_VALUES_PATH }}
 
-          git diff --cached --quiet || \
+          if git diff --cached --quiet; then
+            echo "No Helm values changes detected"
+            exit 0
+          fi
+
           git commit -m "chore(product-catalog): update image to ${{ github.sha }}"
-
           git push
