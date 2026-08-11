@@ -69,7 +69,7 @@ jobs:
           scanners: 'vuln'
 
       - name: Login to GHCR
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -77,12 +77,12 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push Docker image
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         run: |
           docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       - name: Install yq
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         run: |
           sudo wget -q \
             https://github.com/mikefarah/yq/releases/download/v4.53.3/yq_linux_amd64 \
@@ -90,7 +90,7 @@ jobs:
           sudo chmod +x /usr/local/bin/yq
 
       - name: Update Helm image tag
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         env:
           NEW_TAG: ${{ github.sha }}
         run: |
@@ -98,7 +98,7 @@ jobs:
             ${{ env.HELM_VALUES_PATH }}
 
       - name: Commit Helm values update
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
