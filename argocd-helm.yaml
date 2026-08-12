@@ -22,5 +22,8 @@ spec:
     namespace: opentelemetry-demo
 
   syncPolicy:
-    syncOptions:
-      - CreateNamespace=true
+  automated:
+    prune: true
+    selfHeal: true
+  syncOptions:
+    - CreateNamespace=true
